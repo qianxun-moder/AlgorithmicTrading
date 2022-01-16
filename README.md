@@ -1,2 +1,2 @@
 # AlgorithmicTrading
-量化交易学习资料
+个人量化交易框架
