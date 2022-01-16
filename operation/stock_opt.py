@@ -17,11 +17,30 @@ class StockOpt(object):
     def update_stocks(self):
         tsd = self.ts.stocks_info()
         self.db.save('stocks_basinfo_cn', data=tsd, if_exists='replace')
+        return tsd
+
+    def update_cal(self, start_date=None, end_date=None):
+        tsd = self.ts.trade_cal(start_date=start_date, end_date=end_date)
+        self.db.save('trade_cal_cn', data=tsd, if_exists='replace')
+        return tsd
+
+    def daily(self, date):
+        tsd = self.ts.daily(date=date)
+        self.db.save('daily_cn', data=tsd, if_exists='append')
+        return tsd
+
+    def daily_hist(self, start_date=None, end_date=None):
+        tsd = self.ts.daily_hist(start_date=start_date, end_date=end_date)
+        self.db.save('daily_cn', data=tsd, if_exists='replace')
+        return tsd
 
 
 if __name__ == '__main__':
     opt = StockOpt(token_file='../my_token.txt', db_config_file='../db_config.json', db_name='algtrd_db')
 
-    opt.update_stocks()
+    # opt.update_stocks()
 
+    # opt.update_cal(start_date='20120116', end_date='20220115')
+    opt.daily_hist(start_date='20120116', end_date='20220115')
     print('..')
+

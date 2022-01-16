@@ -32,12 +32,14 @@ class TSReq(object):
                 return sdata
             else:
                 raise RuntimeError(f'{datetime.datetime.now()} : {func.__name__} req data error!')
+
         return wrapper
 
     @retry_opt
     def stocks_info(self):
 
-        stocks = self.ts.stock_basic(fields='ts_code,symbol,name,area,industry,fullname,enname,cnspell,market,exchange,curr_type,list_status,list_date,delist_date,is_hs')
+        stocks = self.ts.stock_basic(
+            fields='ts_code,symbol,name,area,industry,fullname,enname,cnspell,market,exchange,curr_type,list_status,list_date,delist_date,is_hs')
 
         return stocks
 
@@ -46,7 +48,7 @@ class TSReq(object):
 
         if (start_date is None) and (end_date is None):
             if date is None:
-                date = (datetime.datetime.now()-datetime.timedelta(days=1)).strftime('%Y%m%d')
+                date = (datetime.datetime.now() - datetime.timedelta(days=1)).strftime('%Y%m%d')
             cal = self.ts.trade_cal(exchange=excha_list[0], cal_date=date)
 
             for e in excha_list[1:]:
@@ -54,9 +56,9 @@ class TSReq(object):
                 cal = cal.append(tcal)
         else:
             if start_date is None:
-                start_date = (datetime.datetime.now()-datetime.timedelta(days=1)).strftime('%Y%m%d')
+                start_date = (datetime.datetime.now() - datetime.timedelta(days=1)).strftime('%Y%m%d')
             else:
-                end_date = (datetime.datetime.now()-datetime.timedelta(days=1)).strftime('%Y%m%d')
+                end_date = (datetime.datetime.now() - datetime.timedelta(days=1)).strftime('%Y%m%d')
 
             cal = self.ts.trade_cal(exchange=excha_list[0], start_date=start_date, end_date=end_date)
 
@@ -65,7 +67,6 @@ class TSReq(object):
                 cal = cal.append(tcal)
 
         return cal
-+
 
     @retry_opt
     def daily(self, date=None):
@@ -73,10 +74,11 @@ class TSReq(object):
         单日日行情
         :return:
         '''
-
         if date is None:
+            date = (datetime.datetime.now() - datetime.timedelta(days=1)).strftime('%Y%m%d')
+        daily_data = self.ts.daily(trade_date=date)
 
-            daily_data = self.ts.daily()
+        return daily_data
 
     @retry_opt
     def daily_hist(self, start_date=None, end_date=None):
@@ -86,7 +88,21 @@ class TSReq(object):
         :param end_date:
         :return:
         '''
-        pass
+
+        if (start_date is None) or (end_date is None):
+            raise RuntimeError('param error')
+
+        s_date = datetime.datetime.strptime(start_date, '%Y%m%d')
+        e_date = datetime.datetime.strptime(end_date, '%Y%m%d')
+
+        diff_days = (e_date - s_date).days
+
+        daily = self.ts.daily(trade_date=start_date)
+        for d in range(1, diff_days):
+            date = (s_date + datetime.timedelta(days=d)).strftime('%Y%m%d')
+            daily = daily.append(self.ts.daily(trade_date=date))
+
+        return daily
 
     @retry_opt
     def suspend(self):
@@ -136,11 +152,14 @@ class TSReq(object):
         '''
         pass
 
+
 if __name__ == '__main__':
     my_token_file = '../../my_token.txt'
     tsreq = TSReq(my_token_file)
 
     # sdata = tsreq.stocks_info()
-    cal = tsreq.trade_cal()
+    # cal = tsreq.trade_cal()
+    # daily = tsreq.daily(date='20220116')
 
+    daily_his = tsreq.daily_hist(start_date='20120115', end_date='20220115')
     print('..')
