@@ -12,7 +12,7 @@ class TSReq(object):
         token = open(token_file, 'rt').read()
         ts.set_token(token)
         self.ts = ts.pro_api()
-        self.date = datetime.date
+        self.date = (datetime.datetime.now() - datetime.timedelta(days=1)).strftime('%Y%m%d')
 
     def retry_opt(func, rt_times=60):
 
@@ -22,11 +22,24 @@ class TSReq(object):
             req_success = False
             for i in range(rt_times):
                 try:
+                    limit = kwargs['limit'] = kwargs['limit'] if 'limit' in kwargs.keys() else 1000
+                    kwargs['offset'] = 0
                     sdata = func(self, *args, **kwargs)
+                    offset = limit
+                    while sdata.shape[0] > 0:
+                        kwargs['offset'] = offset
+                        tmp = func(self, *args, **kwargs)
+                        if tmp.shape[0] == 0:
+                            break
+                        else:
+                            sdata = sdata.append(tmp)
+                            offset += limit
+
                     req_success = True
                     break
                 except Exception as e:
-                    time.sleep(1)
+                    time.sleep(2)
+                    print(f"{datetime.datetime.now()} : {func.__name__} retry ts_req {i}'s")
                     continue
             if req_success:
                 return sdata
@@ -36,7 +49,7 @@ class TSReq(object):
         return wrapper
 
     @retry_opt
-    def stocks_info(self):
+    def stocks_info(self, limit=None, offset=None):
 
         stocks = self.ts.stock_basic(
             fields='ts_code,symbol,name,area,industry,fullname,enname,cnspell,market,exchange,curr_type,list_status,list_date,delist_date,is_hs')
@@ -44,39 +57,41 @@ class TSReq(object):
         return stocks
 
     @retry_opt
-    def trade_cal(self, date=None, excha_list=['SSE', 'SZSE'], start_date=None, end_date=None):
+    def trade_cal(self, date=None, excha_list=['SSE', 'SZSE'], start_date=None, end_date=None, limit=None, offset=None):
 
         if (start_date is None) and (end_date is None):
             if date is None:
-                date = (datetime.datetime.now() - datetime.timedelta(days=1)).strftime('%Y%m%d')
-            cal = self.ts.trade_cal(exchange=excha_list[0], cal_date=date)
+                date = self.date
+            cal = self.ts.trade_cal(exchange=excha_list[0], cal_date=date, limit=limit, offset=offset)
 
             for e in excha_list[1:]:
                 tcal = self.ts.trade_cal(exchange=e, cal_date=date)
                 cal = cal.append(tcal)
         else:
             if start_date is None:
-                start_date = (datetime.datetime.now() - datetime.timedelta(days=1)).strftime('%Y%m%d')
+                start_date = self.date
             else:
-                end_date = (datetime.datetime.now() - datetime.timedelta(days=1)).strftime('%Y%m%d')
+                end_date = self.date
 
-            cal = self.ts.trade_cal(exchange=excha_list[0], start_date=start_date, end_date=end_date)
+            cal = self.ts.trade_cal(exchange=excha_list[0], start_date=start_date, end_date=end_date, limit=limit,
+                                    offset=offset)
 
             for e in excha_list[1:]:
-                tcal = self.ts.trade_cal(exchange=e, start_date=start_date, end_date=end_date)
+                tcal = self.ts.trade_cal(exchange=e, start_date=start_date, end_date=end_date, limit=limit,
+                                         offset=offset)
                 cal = cal.append(tcal)
 
         return cal
 
     @retry_opt
-    def daily(self, date=None):
+    def daily(self, date=None, limit=None, offset=None):
         '''
         单日日行情
         :return:
         '''
         if date is None:
-            date = (datetime.datetime.now() - datetime.timedelta(days=1)).strftime('%Y%m%d')
-        daily_data = self.ts.daily(trade_date=date)
+            date = self.date
+        daily_data = self.ts.daily(trade_date=date, limit=limit, offset=offset)
 
         return daily_data
 
@@ -105,15 +120,15 @@ class TSReq(object):
         return daily
 
     @retry_opt
-    def suspend(self, date=None):
+    def suspend(self, date=None, limit=None, offset=None):
         '''
         单日停复牌信息
         :return:
         '''
 
         if date is None:
-            date = (datetime.datetime.now() - datetime.timedelta(days=1)).strftime('%Y%m%d')
-        sp = self.ts.suspend_d(trade_date=date)
+            date = self.date
+        sp = self.ts.suspend_d(trade_date=date, limit=limit, offset=offset)
         return sp
 
     def suspend_his(self, start_date=None, end_date=None):
@@ -137,15 +152,20 @@ class TSReq(object):
         return sus
 
     @retry_opt
-    def moneyflow(self, date=None):
+    def moneyflow(self, date=None, limit=None, offset=None):
         '''
         当日个股资金流向
         :return:
         '''
         if date is None:
-            date = (datetime.datetime.now() - datetime.timedelta(days=1)).strftime('%Y%m%d')
+            date = self.date
 
-        mf = self.ts.moneyflow(trade_date=date)
+        mf = self.ts.moneyflow(trade_date=date,
+                               fields=["ts_code", "trade_date", "buy_sm_vol", "buy_sm_amount", "sell_sm_vol",
+                                       "sell_sm_amount", "buy_md_vol", "buy_md_amount", "sell_md_vol", "sell_md_amount",
+                                       "buy_lg_vol", "buy_lg_amount", "sell_lg_vol", "sell_lg_amount", "buy_elg_vol",
+                                       "buy_elg_amount", "sell_elg_vol", "sell_elg_amount", "net_mf_vol",
+                                       "net_mf_amount", "trade_count"], limit=limit, offset=offset)
         return mf
 
     def moneyflow_his(self, start_date=None, end_date=None):
@@ -160,29 +180,56 @@ class TSReq(object):
         e_date = datetime.datetime.strptime(end_date, '%Y%m%d')
 
         diff_days = (e_date - s_date).days
-        mfh = self.moneyflow(date=start_date)
+        mfh = self.moneyflow(date=start_date, limit=4500)
 
         for d in range(1, diff_days):
             date = (s_date + datetime.timedelta(days=d)).strftime('%Y%m%d')
-            mfh = mfh.append(self.moneyflow(date=date))
+            tmp = self.moneyflow(date=date, limit=4500)
+            mfh = mfh.append(tmp)
+            if d % 10 == 0:
+                print(f'{datetime.datetime.now()} : read date {date} success! read {tmp.shape[0]} lines!')
 
         return mfh
 
     @retry_opt
-    def limit_list(self):
+    def limit_list(self, date=None, limit=None, offset=None):
         '''
         当日涨跌停统计
         :return:
         '''
-        pass
+        if (limit is None) or (offset is None):
+            raise RuntimeError('param error')
 
-    @retry_opt
-    def limit_list_hist(self):
+        if date is None:
+            date = self.date
+
+        lml = self.ts.limit_list(trade_date=date, limit=limit, offset=offset)
+
+        return lml
+
+    def limit_list_hist(self, start_date=None, end_date=None):
         '''
         历史涨跌停统计
         :return:
         '''
-        pass
+        if (start_date is None) or (end_date is None):
+            raise RuntimeError('param error')
+
+        s_date = datetime.datetime.strptime(start_date, '%Y%m%d')
+        e_date = datetime.datetime.strptime(end_date, '%Y%m%d')
+
+        diff_days = (e_date - s_date).days
+        lmlh = self.limit_list(date=start_date, limit=1000)
+
+        for d in range(1, diff_days):
+            date = (s_date + datetime.timedelta(days=d)).strftime('%Y%m%d')
+            tmp = self.limit_list(date=date, limit=1000)
+            lmlh = lmlh.append(tmp)
+            if d % 10 == 0:
+                print(
+                    f'{datetime.datetime.now()} : limit_list_hist read date {date} success! read {tmp.shape[0]} lines!')
+
+        return lmlh
 
 
 if __name__ == '__main__':
@@ -193,5 +240,5 @@ if __name__ == '__main__':
     # cal = tsreq.trade_cal()
     # daily = tsreq.daily(date='20220116')
 
-    daily_his = tsreq.daily_hist(start_date='20120115', end_date='20220115')
+    daily_his = tsreq.limit_list(date='20220113')
     print('..')
