@@ -80,7 +80,6 @@ class TSReq(object):
 
         return daily_data
 
-    @retry_opt
     def daily_hist(self, start_date=None, end_date=None):
         '''
         历史日行情
@@ -97,44 +96,77 @@ class TSReq(object):
 
         diff_days = (e_date - s_date).days
 
-        daily = self.ts.daily(trade_date=start_date)
+        daily = self.daily(date=start_date)
+
         for d in range(1, diff_days):
             date = (s_date + datetime.timedelta(days=d)).strftime('%Y%m%d')
-            daily = daily.append(self.ts.daily(trade_date=date))
+            daily = daily.append(self.daily(date=date))
 
         return daily
 
     @retry_opt
-    def suspend(self):
+    def suspend(self, date=None):
         '''
-        当日停复牌信息
+        单日停复牌信息
         :return:
         '''
-        pass
 
-    @retry_opt
-    def suspend_his(self):
+        if date is None:
+            date = (datetime.datetime.now() - datetime.timedelta(days=1)).strftime('%Y%m%d')
+        sp = self.ts.suspend_d(trade_date=date)
+        return sp
+
+    def suspend_his(self, start_date=None, end_date=None):
         '''
         历史停复牌信息
         :return:
         '''
-        pass
+        if (start_date is None) or (end_date is None):
+            raise RuntimeError('param error')
+
+        s_date = datetime.datetime.strptime(start_date, '%Y%m%d')
+        e_date = datetime.datetime.strptime(end_date, '%Y%m%d')
+
+        diff_days = (e_date - s_date).days
+        sus = self.suspend(date=start_date)
+
+        for d in range(1, diff_days):
+            date = (s_date + datetime.timedelta(days=d)).strftime('%Y%m%d')
+            sus = sus.append(self.suspend(date=date))
+
+        return sus
 
     @retry_opt
-    def moneyflow(self):
+    def moneyflow(self, date=None):
         '''
         当日个股资金流向
         :return:
         '''
-        pass
+        if date is None:
+            date = (datetime.datetime.now() - datetime.timedelta(days=1)).strftime('%Y%m%d')
 
-    @retry_opt
-    def moneyflow_his(self):
+        mf = self.ts.moneyflow(trade_date=date)
+        return mf
+
+    def moneyflow_his(self, start_date=None, end_date=None):
         '''
         历史个股资金流向
         :return:
         '''
-        pass
+        if (start_date is None) or (end_date is None):
+            raise RuntimeError('param error')
+
+        s_date = datetime.datetime.strptime(start_date, '%Y%m%d')
+        e_date = datetime.datetime.strptime(end_date, '%Y%m%d')
+
+        diff_days = (e_date - s_date).days
+        mfh = self.moneyflow(date=start_date)
+
+        for d in range(1, diff_days):
+            date = (s_date + datetime.timedelta(days=d)).strftime('%Y%m%d')
+            mfh = mfh.append(self.moneyflow(date=date))
+
+        return mfh
 
     @retry_opt
     def limit_list(self):
