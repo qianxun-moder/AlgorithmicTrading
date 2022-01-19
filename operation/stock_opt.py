@@ -16,7 +16,7 @@ class StockOpt(object):
 
     def update_stocks(self):
         tsd = self.ts.stocks_info()
-        self.db.save('stocks_basinfo_cn', data=tsd, if_exists='append')
+        self.db.save('stocks_basinfo_cn', data=tsd, if_exists='replace')
         return tsd
 
     def update_cal(self, start_date=None, end_date=None):
@@ -59,8 +59,10 @@ class StockOpt(object):
         self.db.save('limit_list_cn', data=tsd, if_exists=if_exists)
         return tsd
 
-    def limit_list_hist(self, start_date=None, end_date=None):
+    def limit_list_hist(self, start_date=None, end_date=None, if_exists='append'):
         tsd = self.ts.limit_list_hist(start_date=start_date, end_date=end_date)
+        self.db.save('limit_list_cn', data=tsd, if_exists=if_exists)
+        return tsd
 
 if __name__ == '__main__':
     opt = StockOpt(token_file='../my_token.txt', db_config_file='../db_config.json', db_name='algtrd_db')
@@ -70,7 +72,7 @@ if __name__ == '__main__':
     # opt.update_cal(start_date='20120116', end_date='20220115')
     # opt.daily_hist(start_date='20120116', end_date='20220115')
     # opt.suspend_his(start_date='20120116', end_date='20220115')
-    opt.moneyflow_his(start_date='20120116', end_date='20220115')
+    # opt.moneyflow_his(start_date='20120116', end_date='20220115')
     opt.limit_list_hist(start_date='20120116', end_date='20220115')
     print('..')
 

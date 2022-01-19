@@ -187,7 +187,7 @@ class TSReq(object):
             tmp = self.moneyflow(date=date, limit=4500)
             mfh = mfh.append(tmp)
             if d % 10 == 0:
-                print(f'{datetime.datetime.now()} : read date {date} success! read {tmp.shape[0]} lines!')
+                print(f'{datetime.datetime.now()} : moneyflow_his read date {date} success! read {tmp.shape[0]} lines!')
 
         return mfh
 
