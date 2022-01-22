@@ -22,18 +22,21 @@ class TSReq(object):
             req_success = False
             for i in range(rt_times):
                 try:
-                    limit = kwargs['limit'] = kwargs['limit'] if 'limit' in kwargs.keys() else 1000
-                    kwargs['offset'] = 0
-                    sdata = func(self, *args, **kwargs)
-                    offset = limit
-                    while sdata.shape[0] > 0:
-                        kwargs['offset'] = offset
-                        tmp = func(self, *args, **kwargs)
-                        if tmp.shape[0] == 0:
-                            break
-                        else:
-                            sdata = sdata.append(tmp)
-                            offset += limit
+                    if ('limit' in kwargs.keys()) and (kwargs['limit'] != None):
+                        limit = kwargs['limit'] = kwargs['limit']
+                        kwargs['offset'] = 0
+                        sdata = func(self, *args, **kwargs)
+                        offset = limit
+                        while sdata.shape[0] > 0:
+                            kwargs['offset'] = offset
+                            tmp = func(self, *args, **kwargs)
+                            if tmp.shape[0] == 0:
+                                break
+                            else:
+                                sdata = sdata.append(tmp)
+                                offset += limit
+                    else:
+                        sdata = func(self, *args, **kwargs)
 
                     req_success = True
                     break
@@ -115,7 +118,11 @@ class TSReq(object):
 
         for d in range(1, diff_days):
             date = (s_date + datetime.timedelta(days=d)).strftime('%Y%m%d')
-            daily = daily.append(self.daily(date=date))
+            tmp = self.daily(date=date)
+            daily = daily.append(tmp)
+            if d % 10 == 0:
+                print(
+                    f'{datetime.datetime.now()} : daily_hist read date {date} success! read {tmp.shape[0]} lines!')
 
         return daily
 
@@ -147,8 +154,11 @@ class TSReq(object):
 
         for d in range(1, diff_days):
             date = (s_date + datetime.timedelta(days=d)).strftime('%Y%m%d')
-            sus = sus.append(self.suspend(date=date))
-
+            tmp = self.suspend(date=date)
+            sus = sus.append(tmp)
+            if d % 10 == 0:
+                print(
+                    f'{datetime.datetime.now()} : suspend_his read date {date} success! read {tmp.shape[0]} lines!')
         return sus
 
     @retry_opt
