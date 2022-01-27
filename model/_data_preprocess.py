@@ -46,16 +46,27 @@ class DataPrep(object):
         self.start_date = start_date
         self.end_date = end_date
 
+        if db_cfg is None:
+            db_cfg = '../db_config.json'
+
         with open(db_cfg) as f:
             db_cfg = json.load(f)
         self.db = MysqlOpt(db_cfg['url'], db_cfg['port'], db_cfg['user'], db_cfg['password'], 'algtrd_db')
         self.trf_funcs = {}
         self.ft_cols = []
         self.tffm = {'OneHot': OneHotEncoder, 'date': DateTrf, 'std_scal': StandardScaler, 'time': TimeTrf}
-        self.label_ths = {'y1': 1.05, 'y2': 1.05, 'y3': 1.05}
 
-    def read_sql(self, table_name=None, start_date=None, end_date=None):
-        sql = f"select * from {table_name} where trade_date between {start_date} and {end_date}"
+    def get_sql(self, table_name=None, date=None, start_date=None, end_date=None):
+
+        if date is None:
+            if start_date is None:
+                sql = f"select * from {table_name}"
+            elif end_date is None:
+                sql = f"select * from {table_name} where trade_date >= {start_date}"
+            else:
+                sql = f"select * from {table_name} where trade_date between {start_date} and {end_date}"
+        else:
+            sql = f"select * from {table_name} where trade_date = {date}"
 
         return sql
 
@@ -78,7 +89,7 @@ class DataPrep(object):
         tr_data = pd.concat([data[remain_col], tr_data], axis=1)
         return tr_data
 
-    def stocks(self, columns=['ts_code', 'area', 'industry', 'market', 'exchange', 'is_hs']):
+    def stocks(self):
         '''
         :param columns:
             20220120：去除 'list_status',因只有一个取值。
@@ -86,7 +97,7 @@ class DataPrep(object):
             20220122：去除 'list_date', 时间数据暂时不做处理
         :return:
         '''
-        sql = f"select {','.join(columns)} from stocks_basinfo_cn"
+        sql = self.get_sql(table_name='stocks_basinfo_cn')
 
         stocks = self.db.read(read_sql=sql)
 
@@ -100,7 +111,7 @@ class DataPrep(object):
 
         return trf_data
 
-    def cal(self, columns=[]):
+    def cal(self):
         '''
         是否开盘数据，模型训练不需要
         :param columns:
@@ -111,9 +122,9 @@ class DataPrep(object):
 
         print('..')
 
-    def daily(self, start_date=None, end_date=None):
+    def daily(self, date=None, start_date=None, end_date=None):
 
-        sql = f"select * from daily_cn where trade_date between '{start_date}' and '{end_date}'"
+        sql = self.get_sql(table_name='daily_cn', date=date, start_date=start_date, end_date=end_date)
         dl = self.db.read(sql)
 
         cols = ['trade_date', 'open', 'high', 'low', 'close', 'pre_close', 'change', 'pct_chg', 'vol', 'amount']
@@ -136,8 +147,9 @@ class DataPrep(object):
 
         cols = []
 
-    def moneyflow(self, start_date=None, end_date=None):
-        sql = f"select * from moneyflow_cn where trade_date between '{start_date}' and '{end_date}'"
+    def moneyflow(self, date=None, start_date=None, end_date=None):
+        # sql = f"select * from moneyflow_cn where trade_date between '{start_date}' and '{end_date}'"
+        sql = self.get_sql(table_name='moneyflow_cn', date=date, start_date=start_date, end_date=end_date)
         mf = self.db.read(sql)
 
         cols = ['buy_sm_vol', 'buy_sm_amount', 'sell_sm_vol',
@@ -152,8 +164,9 @@ class DataPrep(object):
 
         return tfmf
 
-    def limit_list(self, start_date=None, end_date=None):
-        sql = f"select * from limit_list_cn where trade_date between {start_date} and {end_date}"
+    def limit_list(self, date=None, start_date=None, end_date=None):
+        # sql = f"select * from limit_list_cn where trade_date between {start_date} and {end_date}"
+        sql = self.get_sql(table_name='limit_list_cn', date=date, start_date=start_date, end_date=end_date)
         ls = self.db.read(sql)
 
         cols = ['first_time', 'last_time', 'close', 'pct_chg', 'amp', 'fc_ratio', 'fl_ratio', 'fd_amount', 'open_times',
@@ -207,7 +220,7 @@ class DataPrep(object):
 
 
 if __name__ == '__main__':
-    db_config_file = '../../db_config.json'
+    db_config_file = '../db_config.json'
     with open(db_config_file) as f:
         db_cfg = json.load(f)
     # db = MysqlOpt(db_cfg['url'], db_cfg['port'], db_cfg['user'], db_cfg['password'], 'algtrd_db')

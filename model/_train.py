@@ -1,19 +1,20 @@
+import pickle
 
-import sys
-
-sys.path.append('..')
-from feature.data_preprocess import DataPrep
+from _featuer_engineer import FeatureEng
 from sklearn.model_selection import train_test_split
 from sklearn import metrics
 import lightgbm as lgb
+# import pickle as pkl
+import dill
+
+
 
 class Model(object):
 
-    def __init__(self, X=None, Y=None):
-        self.X = X
-        self.Y = Y
-
-        self.models = {}
+    def __init__(self):
+        data = FeatureEng()
+        self.X, self.Y = data.get_train_data()
+        self.data = data
 
     def train(self):
         x_train, x_test, y_train, y_test = train_test_split(self.X, self.Y, test_size=0.25)
@@ -29,23 +30,20 @@ class Model(object):
         f1_score = metrics.f1_score(y_test, y_pre)
         auc = metrics.roc_auc_score(y_test, y_pre)
 
+        self.gbm = gbm
+        # pickle.dump(self, open('models/post1_lgbm.md', 'wb'))
+        return gbm
 
+    def predict(self):
+        data = self.data
+        x = data.get_predict_date()
 
-        print('..')
+        y_pre = self.gbm.predict(x)
 
-
-
-    def save(self):
-        pass
 
 if __name__ == '__main__':
-    db_config_file = '../../db_config.json'
-    data = DataPrep(db_cfg=db_config_file)
-    x, y = data.get_train_data()
-
-    md = Model(x, y)
+    md = Model()
     md.train()
+    dill.dump(md, open('./models/post1_lgbm.md', 'wb'))
 
     print('..')
-    print('..')
-
