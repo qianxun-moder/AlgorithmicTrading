@@ -1,49 +1,29 @@
-import pickle
 
-from _featuer_engineer import FeatureEng
-from sklearn.model_selection import train_test_split
-from sklearn import metrics
-import lightgbm as lgb
-# import pickle as pkl
-import dill
+from _my_model1 import Model
+from _my_model2 import Model as Model2
+import pickle as pkl
+import json
+from data import MysqlOpt
 
 
 
-class Model(object):
 
-    def __init__(self):
-        data = FeatureEng()
-        self.X, self.Y = data.get_train_data()
-        self.data = data
-
-    def train(self):
-        x_train, x_test, y_train, y_test = train_test_split(self.X, self.Y, test_size=0.25)
-        gbm = lgb.LGBMClassifier()
-
-        gbm.fit(x_train, y_train)
-
-        y_pre = gbm.predict(x_test, num_iteration=gbm.best_iteration_)
-
-        acc = metrics.accuracy_score(y_test, y_pre)
-        precision = metrics.precision_score(y_test, y_pre)
-        recall = metrics.recall_score(y_test, y_pre)
-        f1_score = metrics.f1_score(y_test, y_pre)
-        auc = metrics.roc_auc_score(y_test, y_pre)
-
-        self.gbm = gbm
-        # pickle.dump(self, open('models/post1_lgbm.md', 'wb'))
-        return gbm
-
-    def predict(self):
-        data = self.data
-        x = data.get_predict_date()
-
-        y_pre = self.gbm.predict(x)
 
 
 if __name__ == '__main__':
-    md = Model()
-    md.train()
-    dill.dump(md, open('./models/post1_lgbm.md', 'wb'))
+    if False:
+        from data._data_preprocess import DataPrep
 
+        data_pro = DataPrep(start_date='20220111', end_date='20220115')
+        md = Model()
+        md.train(data_pro.get_data(start_date='20220111', end_date='20220115'))
+        pkl.dump(md, open('./models/post1_lgbm.md', 'wb'))
+    else:
+        db_config_file = '../db_config.json'
+        with open(db_config_file) as f:
+            db_cfg = json.load(f)
+        db = MysqlOpt(db_cfg['url'], db_cfg['port'], db_cfg['user'], db_cfg['password'], 'algtrd_db')
+        md = Model2(db=db)
+        md.train()
+        pkl.dump(md, open('./models/post1_lgbm2.md', 'wb'))
     print('..')

@@ -6,6 +6,7 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 import pandas as pd
 import numpy as np
+
 import json
 
 
@@ -117,7 +118,7 @@ class DataPrep(object):
         :param columns:
         :return:
         '''
-        sql = f"select {','.join(columns)} from trade_cal_cn"
+        sql = f"select * from trade_cal_cn"
         cals = self.db.read(read_sql=sql)
 
         print('..')
@@ -178,12 +179,16 @@ class DataPrep(object):
 
         return trls
 
-    def merge_data(self):
+    def get_data(self, date=None, start_date=None, end_date=None):
 
         stock_data = self.stocks()
-        dl = self.daily(start_date='20220111', end_date='20220115')
-        mf = self.moneyflow(start_date='20220111', end_date='20220115')
-        ls = self.limit_list(start_date='20220111', end_date='20220115')
+        # dl = self.daily(start_date='20220111', end_date='20220115')
+        # mf = self.moneyflow(start_date='20220111', end_date='20220115')
+        # ls = self.limit_list(start_date='20220111', end_date='20220115')
+
+        dl = self.daily(date=date, start_date=start_date, end_date=end_date)
+        mf = self.moneyflow(date=date, start_date=start_date, end_date=end_date)
+        ls = self.limit_list(date=date, start_date=start_date, end_date=end_date)
 
         mgd = pd.merge(left=dl, right=stock_data, left_on='ts_code', right_on='ts_code', how='left')
         mgd = pd.merge(left=mgd, right=mf, left_on=['ts_code', 'trade_date'], right_on=['ts_code', 'trade_date'],
@@ -209,7 +214,7 @@ class DataPrep(object):
 
     def get_train_data(self, dtype='y1'):
 
-        self.merge_data()
+        self.get_data()
         self.get_label()
 
         tmp = self.mgd[~self.mgd[dtype].isna()]
