@@ -11,12 +11,12 @@ from data import MysqlOpt
 
 
 if __name__ == '__main__':
-    if False:
+    if True:
         from data._data_preprocess import DataPrep
 
-        data_pro = DataPrep(start_date='20220111', end_date='20220115')
+        data_pro = DataPrep(start_date='20211216', end_date='20220115')
         md = Model()
-        md.train(data_pro.get_data(start_date='20220111', end_date='20220115'))
+        md.train(data_pro.get_data(start_date='20211216', end_date='20220115'))
         pkl.dump(md, open('./models/post1_lgbm.md', 'wb'))
     else:
         db_config_file = '../db_config.json'

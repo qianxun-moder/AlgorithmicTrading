@@ -246,9 +246,9 @@ if __name__ == '__main__':
     my_token_file = '../../my_token.txt'
     tsreq = TSReq(my_token_file)
 
-    # sdata = tsreq.stocks_info()
+    sdata = tsreq.stocks_info()
     # cal = tsreq.trade_cal()
     # daily = tsreq.daily(date='20220116')
 
-    daily_his = tsreq.limit_list(date='20220113')
+    # daily_his = tsreq.limit_list(date='20220113')
     print('..')

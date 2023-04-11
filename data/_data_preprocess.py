@@ -182,13 +182,13 @@ class DataPrep(object):
     def get_data(self, date=None, start_date=None, end_date=None):
 
         stock_data = self.stocks()
-        # dl = self.daily(start_date='20220111', end_date='20220115')
-        # mf = self.moneyflow(start_date='20220111', end_date='20220115')
-        # ls = self.limit_list(start_date='20220111', end_date='20220115')
+        dl = self.daily(start_date='20211216', end_date='20220115')
+        mf = self.moneyflow(start_date='20211216', end_date='20220115')
+        ls = self.limit_list(start_date='20211216', end_date='20220115')
 
-        dl = self.daily(date=date, start_date=start_date, end_date=end_date)
-        mf = self.moneyflow(date=date, start_date=start_date, end_date=end_date)
-        ls = self.limit_list(date=date, start_date=start_date, end_date=end_date)
+        # dl = self.daily(date=date, start_date=start_date, end_date=end_date)
+        # mf = self.moneyflow(date=date, start_date=start_date, end_date=end_date)
+        # ls = self.limit_list(date=date, start_date=start_date, end_date=end_date)
 
         mgd = pd.merge(left=dl, right=stock_data, left_on='ts_code', right_on='ts_code', how='left')
         mgd = pd.merge(left=mgd, right=mf, left_on=['ts_code', 'trade_date'], right_on=['ts_code', 'trade_date'],
@@ -200,9 +200,9 @@ class DataPrep(object):
         return mgd
 
     def get_label(self):
-        self.mgd['post1'] = self.mgd.sort_values('trade_date').groupby('ts_code')['daily-close-0'].shift(1)
-        self.mgd['post3'] = self.mgd.sort_values('trade_date').groupby('ts_code')['daily-close-0'].shift(3)
-        self.mgd['post5'] = self.mgd.sort_values('trade_date').groupby('ts_code')['daily-close-0'].shift(5)
+        self.mgd['post1'] = self.mgd.sort_values('trade_date').groupby('ts_code')['daily-close-0'].shift(-1)
+        self.mgd['post3'] = self.mgd.sort_values('trade_date').groupby('ts_code')['daily-close-0'].shift(-3)
+        self.mgd['post5'] = self.mgd.sort_values('trade_date').groupby('ts_code')['daily-close-0'].shift(-5)
         self.mgd['y1'] = self.mgd['post1'] / self.mgd['daily-close-0']
         self.mgd['y2'] = self.mgd['post3'] / self.mgd['daily-close-0']
         self.mgd['y3'] = self.mgd['post5'] / self.mgd['daily-close-0']
@@ -223,6 +223,17 @@ class DataPrep(object):
 
         return X, Y
 
+    def for_autofe(self, dtype='y1'):
+        self.get_data()
+        self.get_label()
+
+        tmp = self.mgd[~self.mgd[dtype].isna()]
+        X = tmp[self.ft_cols].to_numpy()
+        Y = (tmp[dtype] > 1.05).astype('int').to_numpy()
+
+        data = pd.concat([X,Y])
+        print('..')
+
 
 if __name__ == '__main__':
     db_config_file = '../db_config.json'
@@ -231,5 +242,6 @@ if __name__ == '__main__':
     # db = MysqlOpt(db_cfg['url'], db_cfg['port'], db_cfg['user'], db_cfg['password'], 'algtrd_db')
     tt = DataPrep(db_cfg=db_config_file)
 
+    # tt.for_autofe()
     tt.get_train_data('y1')
     print('..')

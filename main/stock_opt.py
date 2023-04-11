@@ -88,7 +88,7 @@ class StockOpt(object):
         按天周期训练模型
         :return:
         '''
-        if (start_date is None) or (end_date is None)
+        if (start_date is None) or (end_date is None):
             tmp = datetime.datetime.now()
             start_date = tmp.strftime('%Y%m%d')
             end_date = (tmp-datetime.timedelta(days=30)).strftime('%Y%m%d')

@@ -1,13 +1,25 @@
 
 import pandas as pd
+import json
 
 from sqlalchemy import create_engine
 
 class MysqlOpt(object):
 
-    def __init__(self, url=None, port=None, user=None, pw=None, db=None, charset='utf8'):
+    def __init__(self, db_config_file=None, url=None, port=None, user=None, pw=None, db=None, charset='utf8'):
 
-        engine_url = f'mysql+pymysql://{user}:{pw}@{url}:{port}/{db}?charset={charset}&use_unicode=1'
+        if db_config_file is not None:
+            with open(db_config_file) as f:
+                db_cfg = json.load(f)
+            url = db_cfg['url']
+            port = db_cfg['port']
+            user = db_cfg['user']
+            pw = db_cfg['password']
+
+        if url is not None and db is not None:
+            engine_url = f'mysql+pymysql://{user}:{pw}@{url}:{port}/{db}?charset={charset}&use_unicode=1'
+        else:
+            raise ('param error')
 
         self.mysql = create_engine(engine_url)
 
